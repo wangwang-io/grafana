@@ -8,8 +8,10 @@ import { backendSrv } from 'app/core/services/backend_srv'; // will use the vers
 import { TimeSrv } from 'app/features/dashboard/services/TimeSrv';
 import { convertToStoreState } from '../../../../../test/helpers/convertToStoreState';
 import { getTemplateSrvDependencies } from 'test/helpers/getTemplateSrvDependencies';
-import { of } from 'rxjs';
+import { of, interval } from 'rxjs';
 import { CustomVariableModel, VariableHide } from '../../../../features/variables/types';
+
+import * as rxjsUtils from '../utils/rxjs/increasingInterval';
 
 jest.mock('rxjs/operators', () => {
   const operators = jest.requireActual('rxjs/operators');
@@ -113,6 +115,10 @@ describe('CloudWatchDatasource', () => {
   });
 
   describe('When performing CloudWatch logs query', () => {
+    beforeEach(() => {
+      jest.spyOn(rxjsUtils, 'increasingInterval').mockImplementation(() => interval(100));
+    });
+
     it('should add data links to response', () => {
       const mockResponse: DataQueryResponse = {
         data: [
@@ -164,10 +170,16 @@ describe('CloudWatchDatasource', () => {
       });
     });
 
-    it('should stop querying when no more data retrieved past max attempts', async () => {
-      const fakeFrames = genMockFrames(10);
-      for (let i = 7; i < fakeFrames.length; i++) {
-        fakeFrames[i].meta!.custom!['Statistics']['RecordsMatched'] = fakeFrames[6].meta!.custom!['Statistics'][
+    it('should stop querying when no more data received a number of times in a row', async () => {
+      const fakeFrames = genMockFrames(20);
+      for (let i = 1; i < 4; i++) {
+        fakeFrames[i].meta!.custom!['Statistics']['RecordsMatched'] = fakeFrames[0].meta!.custom!['Statistics'][
+          'RecordsMatched'
+        ];
+      }
+
+      for (let i = 10; i < fakeFrames.length; i++) {
+        fakeFrames[i].meta!.custom!['Statistics']['RecordsMatched'] = fakeFrames[9].meta!.custom!['Statistics'][
           'RecordsMatched'
         ];
       }
@@ -187,21 +199,26 @@ describe('CloudWatchDatasource', () => {
 
       const expectedData = [
         {
-          ...fakeFrames[MAX_ATTEMPTS - 1],
+          ...fakeFrames[14],
           meta: {
             custom: {
-              ...fakeFrames[MAX_ATTEMPTS - 1].meta!.custom,
-              Status: 'Complete',
+              ...fakeFrames[14].meta!.custom,
+              Status: 'Cancelled',
             },
           },
         },
       ];
+
       expect(myResponse).toEqual({
         data: expectedData,
         key: 'test-key',
         state: 'Done',
+        error: {
+          cancelled: true,
+          message: `error: query timed out after ${MAX_ATTEMPTS} attempts`,
+        },
       });
-      expect(i).toBe(MAX_ATTEMPTS);
+      expect(i).toBe(15);
     });
 
     it('should continue querying as long as new data is being received', async () => {
@@ -1106,6 +1123,7 @@ function genMockFrames(numResponses: number): DataFrame[] {
           },
         },
       },
+      refId: 'A',
       length: 0,
     });
   }
