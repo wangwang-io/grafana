@@ -236,6 +236,42 @@ trigger:
 ---
 kind: pipeline
 type: docker
+name: test-pr-windows
+
+platform:
+  os: windows
+  arch: amd64
+  version: 1809
+
+steps:
+- name: identify-runner
+  image: alpine:3.12
+  commands:
+  - echo $DRONE_RUNNER_NAME
+
+- name: initialize
+  image: grafana/build-container:1.2.21
+  commands:
+  - curl -fLO https://grafana-downloads.storage.googleapis.com/grafana-build-pipeline/v$${GRABPL_VERSION}/grabpl
+  - chmod +x grabpl
+  - mkdir -p bin
+  - mv grabpl bin
+  - curl -fLO https://github.com/jwilder/dockerize/releases/download/v$${DOCKERIZE_VERSION}/dockerize-linux-amd64-v$${DOCKERIZE_VERSION}.tar.gz
+  - tar -C bin -xzvf dockerize-linux-amd64-v$${DOCKERIZE_VERSION}.tar.gz
+  - rm dockerize-linux-amd64-v$${DOCKERIZE_VERSION}.tar.gz
+  - yarn install --frozen-lockfile --no-progress
+  - cp -r $(yarn cache dir) yarn-cache
+  environment:
+    DOCKERIZE_VERSION: 0.6.1
+    GRABPL_VERSION: 0.4.25
+
+trigger:
+  event:
+  - pull_request
+
+---
+kind: pipeline
+type: docker
 name: test-master
 
 platform:

@@ -6,6 +6,9 @@ alpine_image = 'alpine:3.12'
 restore_yarn_cache = 'rm -rf $(yarn cache dir) && cp -r yarn-cache $(yarn cache dir)'
 
 def pr_pipelines(edition):
+    trigger = {
+        'event': ['pull_request',],
+    }
     services = [
         {
             'name': 'postgres',
@@ -47,11 +50,13 @@ def pr_pipelines(edition):
         postgres_integration_tests_step(),
         mysql_integration_tests_step(),
     ]
+    windows_steps = []
     return [
         pipeline(
-            name='test-pr', edition=edition, trigger={
-                'event': ['pull_request',],
-            }, services=services, steps=steps
+            name='test-pr', edition=edition, trigger=trigger, services=services, steps=steps,
+        ),
+        pipeline(
+            name='test-pr-windows', edition=edition, trigger=trigger, steps=windows_steps, platform='windows',
         ),
     ]
 
@@ -111,7 +116,7 @@ def master_pipelines(edition):
         ),
     ]
 
-def pipeline(name, edition, trigger, steps, services=[]):
+def pipeline(name, edition, trigger, steps, services=[], platform='linux'):
     pipeline = {
         'kind': 'pipeline',
         'type': 'docker',
@@ -120,6 +125,12 @@ def pipeline(name, edition, trigger, steps, services=[]):
         'services': services,
         'steps': init_steps(edition) + steps,
     }
+    if platform == 'windows':
+        pipeline['platform'] = {
+            'os': 'windows',
+            'arch': 'amd64',
+            'version': '1809',
+        }
     if edition == 'enterprise':
         # We have a custom clone step for enterprise
         pipeline['clone'] = {
