@@ -12,6 +12,7 @@ import {
   toLegacyResponseData,
   ExploreMode,
   LogsDedupStrategy,
+  DataQueryErrorType,
 } from '@grafana/data';
 import { RefreshPicker } from '@grafana/ui';
 import { LocationUpdate } from '@grafana/runtime';
@@ -510,12 +511,14 @@ export const processQueryResponse = (
   const { request, state: loadingState, series, error } = response;
 
   if (error) {
-    if (error.cancelled) {
+    if (error.type === DataQueryErrorType.Timeout) {
       return {
         ...state,
         queryResponse: response,
         loading: loadingState === LoadingState.Loading || loadingState === LoadingState.Streaming,
       };
+    } else if (error.type === DataQueryErrorType.Cancelled) {
+      return state;
     }
 
     // For Angular editors
