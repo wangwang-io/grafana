@@ -198,12 +198,10 @@ export const DataSourceHttpSettings: React.FC<HttpSettingsProps> = props => {
           )}
         </div>
         {dataSourceConfig.basicAuth && (
-          <>
+          <div className="gf-form-group">
             <h6>Basic Auth Details</h6>
-            <div className="gf-form-group">
-              <BasicAuthSettings {...props} />
-            </div>
-          </>
+            <BasicAuthSettings {...props} />
+          </div>
         )}
 
         {(dataSourceConfig.jsonData.tlsAuth || dataSourceConfig.jsonData.tlsAuthWithCACert) && (
