@@ -701,11 +701,12 @@ class GraphElement {
     options.xaxis = {
       timezone: this.dashboard.getTimezone(),
       show: this.panel.xaxis.show,
-      mode: null,
+      mode: 'ordinal',
       min: 0,
       max: ticks.length + 1,
       label: 'Datetime',
       ticks: showTicks,
+      epochArr: ticks,
       timeformat: graphTimeFormat(showTicks.length, min, max),
       tickFormatter: formatter,
     };

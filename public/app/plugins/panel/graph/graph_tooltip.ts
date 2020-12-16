@@ -52,7 +52,7 @@ export default function GraphTooltip(this: any, elem: any, dashboard: any, scope
   };
 
   this.renderAndShow = (absoluteTime: string, innerHtml: string, pos: { pageX: number; pageY: any }, xMode: string) => {
-    if (xMode === 'time') {
+    if (xMode === 'time' || xMode === 'ordinal') {
       innerHtml = '<div class="graph-tooltip-time">' + absoluteTime + '</div>' + innerHtml;
     }
     $tooltip.html(innerHtml).place_tt(pos.pageX + 20, pos.pageY);
@@ -245,7 +245,12 @@ export default function GraphTooltip(this: any, elem: any, dashboard: any, scope
 
       seriesHtml = '';
 
-      absoluteTime = dashboard.formatDate(seriesHoverInfo.time, tooltipFormat);
+      if (xMode === 'ordinal') {
+        const epochArr = xAxes[0].options.epochArr;
+        absoluteTime = dashboard.formatDate(epochArr[seriesHoverInfo.time], tooltipFormat);
+      } else {
+        absoluteTime = dashboard.formatDate(seriesHoverInfo.time, tooltipFormat);
+      }
 
       // Dynamically reorder the hovercard for the current time point if the
       // option is enabled.
@@ -299,7 +304,13 @@ export default function GraphTooltip(this: any, elem: any, dashboard: any, scope
       }
 
       value = textUtil.sanitize(series.formatValue(value));
-      absoluteTime = dashboard.formatDate(item.datapoint[0], tooltipFormat);
+
+      if (xMode === 'ordinal') {
+        const epochArr = xAxes[0].options.epochArr;
+        absoluteTime = dashboard.formatDate(epochArr[item.datapoint[0]], tooltipFormat);
+      } else {
+        absoluteTime = dashboard.formatDate(item.datapoint[0], tooltipFormat);
+      }
 
       group += '<div class="graph-tooltip-value">' + value + '</div>';
 
